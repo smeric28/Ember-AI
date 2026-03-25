@@ -9,4 +9,4 @@ metadata:
   namespace: ember-ai
 data:
   # ZeroTier network ID for admin access
-  ZEROTIER_NETWORK_ID: "REPLACE_WITH_NETWORK_ID"
+  ZEROTIER_NETWORK_ID: "48d6023c46865da6"

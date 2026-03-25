@@ -65,7 +65,7 @@ spec:
               name: ember-ai-env-secrets
               key: KEYCLOAK_CLIENT_SECRET
         - name: N8N_OIDC_ISSUER
-          value: "https://<KEYCLOAK_HOST>/realms/<REALM>"
+          value: "https://auth.embernet.local/realms/ember"
         volumeMounts:
         - name: n8n-data
           mountPath: /home/node/.n8n
@@ -87,6 +87,13 @@ spec:
         volumeMounts:
         - name: zt-identity
           mountPath: /var/lib/zerotier-one
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
       volumes:
       - name: zt-identity
         emptyDir: {}
