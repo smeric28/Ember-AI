@@ -1,0 +1,96 @@
+# =============================================================================
+# Network Policies — restrict pod-to-pod traffic within ember-ai namespace
+# =============================================================================
+
+# Default: deny all ingress in the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ember-ai
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+# Allow LiteLLM to receive traffic from any source (it's the API gateway)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-litellm-ingress
+  namespace: ember-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: litellm
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 4000
+
+---
+# Allow n8n to receive traffic from any source (webhook endpoint)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-n8n-ingress
+  namespace: ember-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: n8n
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 5678
+
+---
+# Allow pgvector to receive traffic only from litellm and n8n
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pgvector-internal
+  namespace: ember-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: pgvector
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: litellm
+    - podSelector:
+        matchLabels:
+          app: n8n
+    ports:
+    - port: 5432
+
+---
+# Allow Valkey to receive traffic only from litellm and n8n
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-valkey-internal
+  namespace: ember-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: valkey
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: litellm
+    - podSelector:
+        matchLabels:
+          app: n8n
+    ports:
+    - port: 6379

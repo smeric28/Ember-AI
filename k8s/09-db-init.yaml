@@ -1,0 +1,88 @@
+# =============================================================================
+# Database Init Job — creates pgvector extension and RAG tables
+# Runs once. Idempotent (IF NOT EXISTS).
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pgvector-init
+  namespace: ember-ai
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init-db
+        image: postgres:16-alpine
+        env:
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: ember-ai-env-secrets
+              key: POSTGRES_USER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ember-ai-env-secrets
+              key: POSTGRES_PASSWORD
+        - name: PGHOST
+          value: pgvector-svc
+        - name: PGDATABASE
+          value: ember_ai
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until pg_isready -h $PGHOST; do
+            echo "Waiting for pgvector..."
+            sleep 2
+          done
+
+          psql -h $PGHOST -U $PGUSER -d $PGDATABASE <<'EOF'
+          -- Enable pgvector extension
+          CREATE EXTENSION IF NOT EXISTS vector;
+
+          -- RAG documents table (multi-tenant via domain column)
+          CREATE TABLE IF NOT EXISTS documents (
+            id          BIGSERIAL PRIMARY KEY,
+            domain      TEXT NOT NULL DEFAULT 'default',
+            content     TEXT NOT NULL,
+            metadata    JSONB DEFAULT '{}',
+            embedding   vector(1536),
+            created_at  TIMESTAMPTZ DEFAULT NOW()
+          );
+
+          -- HNSW index for fast ANN search, partitioned by domain
+          CREATE INDEX IF NOT EXISTS idx_documents_embedding
+            ON documents USING hnsw (embedding vector_cosine_ops);
+
+          CREATE INDEX IF NOT EXISTS idx_documents_domain
+            ON documents (domain);
+
+          -- Tenant table for multi-domain management
+          CREATE TABLE IF NOT EXISTS tenants (
+            id          SERIAL PRIMARY KEY,
+            domain      TEXT UNIQUE NOT NULL,
+            name        TEXT NOT NULL,
+            api_key     TEXT UNIQUE NOT NULL,
+            max_docs    INTEGER DEFAULT 100000,
+            active      BOOLEAN DEFAULT TRUE,
+            created_at  TIMESTAMPTZ DEFAULT NOW()
+          );
+
+          -- Usage tracking
+          CREATE TABLE IF NOT EXISTS usage_log (
+            id          BIGSERIAL PRIMARY KEY,
+            domain      TEXT NOT NULL,
+            model       TEXT NOT NULL,
+            tokens_in   INTEGER DEFAULT 0,
+            tokens_out  INTEGER DEFAULT 0,
+            created_at  TIMESTAMPTZ DEFAULT NOW()
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_usage_domain_time
+            ON usage_log (domain, created_at DESC);
+          EOF
+
+          echo "Database initialized successfully."

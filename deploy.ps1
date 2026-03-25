@@ -39,11 +39,14 @@ if (-not (Test-Path -Path $manifestsDir)) {
 # The ordered list of manifests to apply to ensure dependencies are met
 $manifests = @(
     "00-namespace-and-secrets.yaml",
+    "11-network-policies.yaml",
     "01-pgvector.yaml",
     "02-valkey.yaml",
+    "09-db-init.yaml",
     "06-zerotier-config.yaml",
     "08-litellm-config.yaml",
     "03-litellm.yaml",
+    "10-hpa.yaml",
     "04-n8n.yaml",
     "05-openziti.yaml"
 )

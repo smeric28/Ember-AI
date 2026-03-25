@@ -1,9 +1,10 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: valkey
   namespace: ember-ai
 spec:
+  serviceName: "valkey-svc"
   replicas: 1
   selector:
     matchLabels:
@@ -19,13 +20,18 @@ spec:
         ports:
         - containerPort: 6379
         command: ["valkey-server"]
-        args: ["--appendonly", "yes"] # Optional persistence
+        args: ["--appendonly", "yes"]
         volumeMounts:
         - name: valkey-data
           mountPath: /data
-      volumes:
-      - name: valkey-data
-        emptyDir: {} # Switch to PVC for prod persistence
+  volumeClaimTemplates:
+  - metadata:
+      name: valkey-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
 
 ---
 apiVersion: v1
@@ -39,3 +45,4 @@ spec:
     targetPort: 6379
   selector:
     app: valkey
+  clusterIP: None

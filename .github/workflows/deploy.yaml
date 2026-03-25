@@ -56,10 +56,13 @@ jobs:
       - name: Apply manifests
         run: |
           MANIFESTS=(
+            "k8s/11-network-policies.yaml"
             "k8s/01-pgvector.yaml"
             "k8s/02-valkey.yaml"
+            "k8s/09-db-init.yaml"
             "k8s/08-litellm-config.yaml"
             "k8s/03-litellm.yaml"
+            "k8s/10-hpa.yaml"
             "k8s/04-n8n.yaml"
             "k8s/05-openziti.yaml"
           )
