@@ -1,6 +1,6 @@
 # Ember AI
 
-Secure, internal-only AI platform for Fireball Industries — LLM gateway, RAG pipelines, and agentic workflows on K3s.
+Secure, multi-tenant AI platform for Fireball Industries — LLM gateway, RAG pipelines, and agentic workflows on K3s.
 
 ## Stack
 
@@ -11,39 +11,33 @@ Secure, internal-only AI platform for Fireball Industries — LLM gateway, RAG p
 | **pgvector** | `ankane/pgvector` | PostgreSQL + vector embeddings for RAG |
 | **Valkey** | `valkey/valkey` | Redis-compatible cache and queue backend |
 | **OpenZiti** | `openziti/ziti-edge-tunnel` | Zero-trust overlay network (EmberNet Flux) |
-| **ESO** | HelmChart CRD | Syncs secrets from Bitwarden SM into K8s |
+| **ZeroTier** | `zerotier/zerotier` | Admin interface access (sidecar) |
 
-## Models
+## Models (DeepInfra)
 
-| Name | Provider | Role |
+| Name | Model | Role |
 |---|---|---|
-| `nemotron-120b` | DeepInfra | Main reasoning engine (Nemotron 3 Super 120B) |
-| `nemoclaw` | NVIDIA NIM | Agent model for tool-calling and planning |
-| `gpt-4o` / `gpt-4o-mini` | OpenAI | Fallback |
-| `claude-3.5-sonnet` / `claude-3-haiku` | Anthropic | Fallback |
-| `gemini-2.0-flash` | Google | Fallback |
+| `nemotron-120b` | Nemotron 3 Super 120B | Main reasoning engine |
+| `nemotron-4b` | Nemotron 3 Nano 4B | Routing, classification, fast tasks |
 
 ## Quick Start
 
 ```powershell
-# Deploy to K3s (WSL Ubuntu)
 .\deploy.ps1
-
-# Check pod status
 wsl -d Ubuntu k3s kubectl get pods -n ember-ai
 ```
 
 ## Documentation
 
-- [Developer Guide](docs/developer-guide.md) — Full architecture, components, secrets, and usage
+- [Developer Onboarding](docs/onboarding.md) — Setup, first API call, troubleshooting
+- [Developer Guide](docs/developer-guide.md) — Full architecture and component reference
 - [Architecture](docs/architecture.md) — Design principles
 - [Infrastructure](docs/infrastructure.md) — K3s prerequisites and setup
 - [Integration](docs/integration.md) — Data flow between components
 
 ## Secrets
 
-All secrets managed via Bitwarden Secrets Manager → External Secrets Operator.  
-See `k8s/07-bitwarden-eso-clusterstore.yaml` for the full mapping.
+All secrets injected via GitHub Actions from GitHub Secrets at deploy time.
 
 ## License
 

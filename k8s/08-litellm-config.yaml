@@ -11,70 +11,34 @@ data:
   config.yaml: |
     model_list:
       # -----------------------------------------------------------------------
-      # NVIDIA Nemotron — Primary Engine & Agent
-      # -----------------------------------------------------------------------
-
       # Main engine: Nemotron 3 Super 120B via DeepInfra
+      # -----------------------------------------------------------------------
       - model_name: nemotron-120b
         litellm_params:
           model: deepinfra/nvidia/nemotron-3-super-120b-a12b
           api_key: os.environ/DEEPINFRA_API_KEY
           api_base: https://api.deepinfra.com/v1/openai
 
-      # Agent model: NemoClaw via NVIDIA NIM
-      - model_name: nemoclaw
-        litellm_params:
-          model: nvidia_nim/nvidia/nemoclaw
-          api_key: os.environ/NVIDIA_API_KEY
-          api_base: https://integrate.api.nvidia.com/v1
-
       # -----------------------------------------------------------------------
-      # OpenAI Models
+      # Router / fast model: Nemotron 3 Nano 4B via DeepInfra
+      # Used for intent classification, routing, and lightweight tasks
       # -----------------------------------------------------------------------
-      - model_name: gpt-4o
+      - model_name: nemotron-4b
         litellm_params:
-          model: openai/gpt-4o
-          api_key: os.environ/OPENAI_API_KEY
-      - model_name: gpt-4o-mini
-        litellm_params:
-          model: openai/gpt-4o-mini
-          api_key: os.environ/OPENAI_API_KEY
-
-      # -----------------------------------------------------------------------
-      # Anthropic Models
-      # -----------------------------------------------------------------------
-      - model_name: claude-3.5-sonnet
-        litellm_params:
-          model: anthropic/claude-3-5-sonnet-20241022
-          api_key: os.environ/ANTHROPIC_API_KEY
-      - model_name: claude-3-haiku
-        litellm_params:
-          model: anthropic/claude-3-haiku-20240307
-          api_key: os.environ/ANTHROPIC_API_KEY
-
-      # -----------------------------------------------------------------------
-      # Google Models
-      # -----------------------------------------------------------------------
-      - model_name: gemini-2.0-flash
-        litellm_params:
-          model: gemini/gemini-2.0-flash
-          api_key: os.environ/GEMINI_API_KEY
+          model: deepinfra/nvidia/nemotron-3-nano-4b
+          api_key: os.environ/DEEPINFRA_API_KEY
+          api_base: https://api.deepinfra.com/v1/openai
 
     # -------------------------------------------------------------------------
-    # Router Settings — fallback chain and retry logic
+    # Router Settings
     # -------------------------------------------------------------------------
     router_settings:
       routing_strategy: "simple-shuffle"
       num_retries: 2
       timeout: 120
       fallbacks:
-        # Main engine fallback chain
-        - nemotron-120b: ["gpt-4o", "claude-3.5-sonnet"]
-        # Agent model fallback chain
-        - nemoclaw: ["gpt-4o", "claude-3.5-sonnet"]
-        # Legacy fallbacks
-        - gpt-4o: ["nemotron-120b", "claude-3.5-sonnet"]
-        - claude-3.5-sonnet: ["nemotron-120b", "gpt-4o"]
+        - nemotron-120b: ["nemotron-4b"]
+        - nemotron-4b: ["nemotron-120b"]
 
     # -------------------------------------------------------------------------
     # Caching — Valkey (Redis-compatible)

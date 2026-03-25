@@ -41,8 +41,7 @@ $manifests = @(
     "00-namespace-and-secrets.yaml",
     "01-pgvector.yaml",
     "02-valkey.yaml",
-    "06-external-secrets-operator.yaml",
-    "07-bitwarden-eso-clusterstore.yaml",
+    "06-zerotier-config.yaml",
     "08-litellm-config.yaml",
     "03-litellm.yaml",
     "04-n8n.yaml",
@@ -75,5 +74,4 @@ foreach ($manifest in $manifests) {
 Write-Host "====================================="
 Write-Host " Deployment script finished targeting K3s in WSL!"
 Write-Host " Run 'wsl -d Ubuntu k3s kubectl get pods -n ember-ai' to check status."
-Write-Host " Note: If External Secrets failed due to missing CRDs, please install it first."
 Write-Host "====================================="

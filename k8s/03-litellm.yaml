@@ -36,9 +36,7 @@ spec:
           value: "valkey-svc"
         - name: REDIS_PORT
           value: "6379"
-        # -----------------------------------------------------------------
-        # Keycloak SSO (OIDC) — LiteLLM Generic OAuth2 Provider
-        # -----------------------------------------------------------------
+        # Keycloak SSO (OIDC)
         - name: GENERIC_AUTHORIZATION_ENDPOINT
           value: "https://<KEYCLOAK_HOST>/realms/<REALM>/protocol/openid-connect/auth"
         - name: GENERIC_TOKEN_ENDPOINT
@@ -55,34 +53,12 @@ spec:
             secretKeyRef:
               name: ember-ai-env-secrets
               key: KEYCLOAK_CLIENT_SECRET
-        # -----------------------------------------------------------------
-        # LLM Provider API Keys (injected from secret for config.yaml)
-        # -----------------------------------------------------------------
+        # LLM — DeepInfra only
         - name: DEEPINFRA_API_KEY
           valueFrom:
             secretKeyRef:
               name: ember-ai-env-secrets
               key: DEEPINFRA_API_KEY
-        - name: NVIDIA_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ember-ai-env-secrets
-              key: NVIDIA_API_KEY
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ember-ai-env-secrets
-              key: OPENAI_API_KEY
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ember-ai-env-secrets
-              key: ANTHROPIC_API_KEY
-        - name: GEMINI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ember-ai-env-secrets
-              key: GEMINI_API_KEY
         resources:
           requests:
             memory: "256Mi"
@@ -95,10 +71,30 @@ spec:
           mountPath: /app/config.yaml
           subPath: config.yaml
           readOnly: true
+      # -----------------------------------------------------------------
+      # ZeroTier Sidecar — admin interface access
+      # -----------------------------------------------------------------
+      - name: zerotier
+        image: zerotier/zerotier:latest
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["NET_ADMIN", "SYS_ADMIN"]
+        env:
+        - name: ZEROTIER_ONE_NETWORK_IDS
+          valueFrom:
+            configMapKeyRef:
+              name: zerotier-config
+              key: ZEROTIER_NETWORK_ID
+        volumeMounts:
+        - name: zt-identity
+          mountPath: /var/lib/zerotier-one
       volumes:
       - name: litellm-config
         configMap:
           name: litellm-config
+      - name: zt-identity
+        emptyDir: {}
 
 ---
 apiVersion: v1

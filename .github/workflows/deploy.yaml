@@ -6,6 +6,7 @@ on:
     paths:
       - 'k8s/**'
       - 'deploy.ps1'
+      - '.github/workflows/deploy.yaml'
   workflow_dispatch:
 
 env:
@@ -19,21 +20,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate manifests
+      # -------------------------------------------------------------------
+      # Inject secrets from GitHub Secrets into K8s
+      # -------------------------------------------------------------------
+      - name: Create/Update K8s secrets
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
+          KEYCLOAK_CLIENT_SECRET: ${{ secrets.KEYCLOAK_CLIENT_SECRET }}
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+          ZITI_IDENTITY_JSON: ${{ secrets.ZITI_IDENTITY_JSON }}
         run: |
-          for f in k8s/*.yaml; do
-            echo "Validating $f..."
-            kubectl apply --dry-run=client -f "$f" 2>&1 || true
-          done
+          # Ensure namespace exists
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
+          # Create or replace the secret with real values
+          kubectl create secret generic ember-ai-env-secrets \
+            -n $NAMESPACE \
+            --from-literal=POSTGRES_USER="$POSTGRES_USER" \
+            --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            --from-literal=LITELLM_MASTER_KEY="$LITELLM_MASTER_KEY" \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=KEYCLOAK_CLIENT_ID="$KEYCLOAK_CLIENT_ID" \
+            --from-literal=KEYCLOAK_CLIENT_SECRET="$KEYCLOAK_CLIENT_SECRET" \
+            --from-literal=DEEPINFRA_API_KEY="$DEEPINFRA_API_KEY" \
+            --from-literal=ZITI_IDENTITY_JSON="$ZITI_IDENTITY_JSON" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # -------------------------------------------------------------------
+      # Apply manifests in dependency order
+      # -------------------------------------------------------------------
       - name: Apply manifests
         run: |
           MANIFESTS=(
-            "k8s/00-namespace-and-secrets.yaml"
             "k8s/01-pgvector.yaml"
             "k8s/02-valkey.yaml"
-            "k8s/06-external-secrets-operator.yaml"
-            "k8s/07-bitwarden-eso-clusterstore.yaml"
             "k8s/08-litellm-config.yaml"
             "k8s/03-litellm.yaml"
             "k8s/04-n8n.yaml"
@@ -44,6 +68,9 @@ jobs:
             kubectl apply -f "$m"
           done
 
+      # -------------------------------------------------------------------
+      # Wait for rollouts
+      # -------------------------------------------------------------------
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/litellm -n $NAMESPACE --timeout=120s || true

@@ -1,0 +1,12 @@
+# =============================================================================
+# ZeroTier Sidecar ConfigMap
+# Shared network config for admin-facing pods (LiteLLM, n8n)
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zerotier-config
+  namespace: ember-ai
+data:
+  # ZeroTier network ID for admin access
+  ZEROTIER_NETWORK_ID: "REPLACE_WITH_NETWORK_ID"
